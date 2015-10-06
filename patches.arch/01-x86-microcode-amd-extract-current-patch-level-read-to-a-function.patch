@@ -1,24 +1,28 @@
 From: Borislav Petkov <bp@suse.de>
 Date: Thu, 16 Jul 2015 10:05:46 +0200
 Subject: x86/microcode/amd: Extract current patch level read to a function
-Git-commit: 7708698e783e304da0fac10052dddce1193f47a8
-Patch-mainline: v4.3 or v4.2-rc5 (next release)
+Git-commit: 87492056782e9b148c950c7ef1642d8957b240e2
+Git-repo: tip
+Patch-mainline: v4.4
 References: bsc#913996
 
-Pave the way for checking the current patch level of the
-microcode in a core. We want to be able to do stuff depending on
-the patch level - in this case decide whether to update or not.
-But that will be added in a later patch; here we do not
-introduce any functionality change.
+Pave the way for checking the current patch level of the microcode in a
+core. We want to be able to do stuff depending on the patch level - in
+this case decide whether to update or not. But that will be added in a
+later patch.
 
 Drop unused local var uci assignment, while at it.
 
+Integrate a fix for 32-bit and CONFIG_PARAVIRT from Takashi Iwai
+<tiwai@suse.com>:
+
+Use native_rdmsr() in check_current_patch_level() because with
+CONFIG_PARAVIRT enabled and on 32-bit, where we run before paging has
+been enabled, we cannot deref pv_info yet. Or we could, but we'd need
+to access its physical address. This way of fixing it is simpler. See
+https://bugzilla.suse.com/show_bug.cgi?id=943179 for the background.
+
 Signed-off-by: Borislav Petkov <bp@suse.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Link: http://lkml.kernel.org/r/1437033947-30234-2-git-send-email-bp@alien8.de
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
  arch/x86/include/asm/microcode_amd.h      |    1 +
  arch/x86/kernel/cpu/microcode/amd.c       |   24 ++++++++++++++++++++++--
@@ -53,7 +57,7 @@ Signed-off-by: Ingo Molnar <mingo@kernel.org>
 +{
 +	u32 dummy;
 +
-+	rdmsr(MSR_AMD64_PATCH_LEVEL, *rev, dummy);
++	native_rdmsr(MSR_AMD64_PATCH_LEVEL, *rev, dummy);
 +
 +	return false;
 +}

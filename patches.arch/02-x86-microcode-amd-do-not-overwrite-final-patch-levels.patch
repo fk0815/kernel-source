@@ -4,27 +4,21 @@ Subject: x86/microcode/amd: Do not overwrite final patch levels
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Git-commit: d48a9c164b45c5cc40f00c12231564f9aac8ab1d
-Patch-mainline: v4.3 or v4.2-rc5 (next release)
+Git-commit: e327cd175e8fdb85f38b7296a4990bfe3094fe60
+Patch-mainline: v4.4
 References: bsc#913996
 
-A certain number of patch levels of applied microcode should not
-be overwritten by the microcode loader, otherwise bad things
-will happen.
+A certain number of patch levels of applied microcode should not be
+overwritten by the microcode loader, otherwise bad things will happen.
 
-Check those and abort update if the current core has one of
-those final patch levels applied by the BIOS. 32-bit needs
-special handling, of course.
+Check those and abort update if the current core has one of those final
+patch levels applied by the BIOS. 32-bit needs special handling, of
+course.
 
 See https://bugzilla.suse.com/show_bug.cgi?id=913996 for more info.
 
 Tested-by: Peter Kirchgeßner <pkirchgessner@t-online.de>
 Signed-off-by: Borislav Petkov <bp@suse.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Link: http://lkml.kernel.org/r/1437033947-30234-3-git-send-email-bp@alien8.de
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
  arch/x86/include/asm/microcode_amd.h      |    2 -
  arch/x86/kernel/cpu/microcode/amd.c       |   38 ++++++++++++++++++++++++++----
@@ -71,7 +65,7 @@ Signed-off-by: Ingo Molnar <mingo@kernel.org>
 +	bool ret = false;
 +	u32 *levels;
 +
-+	rdmsr(MSR_AMD64_PATCH_LEVEL, lvl, dummy);
++	native_rdmsr(MSR_AMD64_PATCH_LEVEL, lvl, dummy);
 +
 +	if (IS_ENABLED(CONFIG_X86_32) && early)
 +		levels = (u32 *)__pa_nodebug(&final_levels);
@@ -86,7 +80,7 @@ Signed-off-by: Ingo Molnar <mingo@kernel.org>
 +		}
 +	}
  
--	rdmsr(MSR_AMD64_PATCH_LEVEL, *rev, dummy);
+-	native_rdmsr(MSR_AMD64_PATCH_LEVEL, *rev, dummy);
 +	if (rev)
 +		*rev = lvl;
  
