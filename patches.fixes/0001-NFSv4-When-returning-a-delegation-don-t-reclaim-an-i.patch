@@ -2,7 +2,8 @@ From: NeilBrown <neilb@suse.de>
 Date: Wed, 24 Jun 2015 12:56:20 +1000
 Subject: [PATCH] NFSv4: When returning a delegation, don't reclaim an
  incompatible open mode.
-Patch-mainline: not yet
+Patch-mainline: v4.2
+Git-commit: 39f897fdbd46873defc8501102124f862e8f4d80
 References: bnc#934202
 
 It is possible to have an active open with one mode, and a delegation
