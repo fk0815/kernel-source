@@ -115,7 +115,7 @@ Acked-by: jbeulich@suse.com
        cmd_mkcapflags = $(CONFIG_SHELL) $(srctree)/$(src)/mkcapflags.sh $< $@
 --- a/arch/x86/kernel/cpu/amd.c
 +++ b/arch/x86/kernel/cpu/amd.c
-@@ -511,9 +511,11 @@ static void early_init_amd(struct cpuinf
+@@ -515,9 +515,11 @@ static void early_init_amd(struct cpuinf
  		msr_set_bit(MSR_AMD64_LS_CFG, 15);
  }
  
@@ -127,7 +127,7 @@ Acked-by: jbeulich@suse.com
  
  static void init_amd(struct cpuinfo_x86 *c)
  {
-@@ -839,6 +841,7 @@ static const struct cpu_dev amd_cpu_dev 
+@@ -843,6 +845,7 @@ static const struct cpu_dev amd_cpu_dev 
  
  cpu_dev_register(amd_cpu_dev);
  
@@ -135,7 +135,7 @@ Acked-by: jbeulich@suse.com
  /*
   * AMD errata checking
   *
-@@ -902,3 +905,4 @@ static bool cpu_has_amd_erratum(struct c
+@@ -906,3 +909,4 @@ static bool cpu_has_amd_erratum(struct c
  
  	return false;
  }
@@ -833,7 +833,7 @@ Acked-by: jbeulich@suse.com
  	for (i = 0; i < nr_range; i++)
  		printk(KERN_DEBUG " [mem %#010lx-%#010lx] page %s\n",
  				mr[i].start, mr[i].end - 1,
-@@ -379,7 +379,17 @@ unsigned long __init_refok init_memory_m
+@@ -376,7 +376,17 @@ unsigned long __init_refok init_memory_m
  }
  
  /*
@@ -852,7 +852,7 @@ Acked-by: jbeulich@suse.com
   */
  static unsigned long __init init_range_memory_mapping(
  					   unsigned long r_start,
-@@ -436,6 +446,13 @@ void __init init_mem_mapping(void)
+@@ -433,6 +443,13 @@ void __init init_mem_mapping(void)
  	max_pfn_mapped = 0; /* will get exact value next */
  	min_pfn_mapped = real_end >> PAGE_SHIFT;
  	last_start = start = real_end;
@@ -866,7 +866,7 @@ Acked-by: jbeulich@suse.com
  	while (last_start) {
  		start = round_down(last_start - 1, step_size);
  		new_mapped_ram_size = init_range_memory_mapping(start,
-@@ -527,8 +544,6 @@ void free_init_pages(char *what, unsigne
+@@ -525,8 +542,6 @@ void free_init_pages(char *what, unsigne
  	printk(KERN_INFO "Freeing %s: %luk freed\n", what, (end - begin) >> 10);
  
  	for (; addr < end; addr += PAGE_SIZE) {
@@ -875,7 +875,7 @@ Acked-by: jbeulich@suse.com
  		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
  #ifdef CONFIG_X86_64
  		if (addr >= __START_KERNEL_map) {
-@@ -544,8 +559,7 @@ void free_init_pages(char *what, unsigne
+@@ -542,8 +557,7 @@ void free_init_pages(char *what, unsigne
  				BUG();
  		}
  #endif
