@@ -2,10 +2,9 @@ From a3a8784454692dd72e5d5d34dcdab17b4420e74c Mon Sep 17 00:00:00 2001
 From: Sasha Levin <sasha.levin@oracle.com>
 Date: Mon, 29 Dec 2014 09:39:01 -0500
 Subject: [PATCH] KEYS: close race between key lookup and freeing
-
 Git-commit: a3a8784454692dd72e5d5d34dcdab17b4420e74c
 Patch-mainline: v3.19-rc4
-References: bnc#912202
+References: bnc#912202 CVE-2014-9529.
 Target: SLE-12
 
 When a key is being garbage collected, it's key->user would get put before
@@ -29,10 +28,8 @@ Acked-by: Lee, Chun-Yi <jlee@suse.com>
  security/keys/gc.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-Index: linux-3.16-openSUSE-13.2/security/keys/gc.c
-===================================================================
---- linux-3.16-openSUSE-13.2.orig/security/keys/gc.c
-+++ linux-3.16-openSUSE-13.2/security/keys/gc.c
+--- a/security/keys/gc.c
++++ b/security/keys/gc.c
 @@ -157,12 +157,12 @@ static noinline void key_gc_unused_keys(
  		if (test_bit(KEY_FLAG_INSTANTIATED, &key->flags))
  			atomic_dec(&key->user->nikeys);
