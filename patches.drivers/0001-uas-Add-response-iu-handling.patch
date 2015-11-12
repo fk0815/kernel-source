@@ -1,0 +1,50 @@
+From 861541379f4a4dfd665dac887405ab2154e202b2 Mon Sep 17 00:00:00 2001
+From: Hans de Goede <hdegoede@redhat.com>
+Date: Sat, 13 Sep 2014 12:26:51 +0200
+Subject: [PATCH] uas: Add response iu handling
+Git-Commit: fac1f48584c1b6c745412cf8c5dbdc1725aad8f2
+Patch-Mainline: v3.18
+References: bnc#954138
+
+If something goes wrong in our communication with an uas device we may get
+a response iu in reaction to a cmnd, rather then a status iu. In this case
+propagate an error upwards, rather then logging a bogus iu message.
+
+Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Signed-off-by: Oliver Neukum <oneukum@suse.com>
+---
+ drivers/usb/storage/uas.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/usb/storage/uas.c b/drivers/usb/storage/uas.c
+index 2713693..c5e596e 100644
+--- a/drivers/usb/storage/uas.c
++++ b/drivers/usb/storage/uas.c
+@@ -322,6 +322,8 @@ static void uas_stat_cmplt(struct urb *urb)
+ 	struct uas_dev_info *devinfo = (struct uas_dev_info *)shost->hostdata;
+ 	struct scsi_cmnd *cmnd;
+ 	struct uas_cmd_info *cmdinfo;
++	struct urb *data_in_urb = NULL;
++	struct urb *data_out_urb = NULL;
+ 	unsigned long flags;
+ 	u16 tag;
+ 
+@@ -397,6 +399,14 @@ static void uas_stat_cmplt(struct urb *urb)
+ 		}
+ 		uas_xfer_data(urb, cmnd, SUBMIT_DATA_OUT_URB);
+ 		break;
++	case IU_ID_RESPONSE:
++		/* Error, cancel data transfers */
++		data_in_urb = usb_get_urb(cmdinfo->data_in_urb);
++		data_out_urb = usb_get_urb(cmdinfo->data_out_urb);
++		cmdinfo->state &= ~COMMAND_INFLIGHT;
++		cmnd->result = DID_ERROR << 16;
++		uas_try_complete(cmnd, __func__);
++		break;
+ 	default:
+ 		scmd_printk(KERN_ERR, cmnd,
+ 			"Bogus IU (%d) received on status pipe\n", iu->iu_id);
+-- 
+2.1.4
+
