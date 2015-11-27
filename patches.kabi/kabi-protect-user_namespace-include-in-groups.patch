@@ -1,0 +1,29 @@
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: kABI: protect include in kernel/groups.c
+Patch-mainline: never, kabi
+References: bnc#906545 CVE-2014-8989
+
+patches.fixes/0001-userns-Don-t-allow-setgroups-until-a-gid-mapping-has.patch
+added an #include into kernel/groups.c. It made structs user_namespace
+visible to the kABI checker. Hence it reports kABI changes now.
+
+So, just protect the include by __GENKSYMS__ to hide it from the
+checker.
+
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+---
+ kernel/groups.c |    2 ++
+ 1 file changed, 2 insertions(+)
+
+--- a/kernel/groups.c
++++ b/kernel/groups.c
+@@ -6,7 +6,9 @@
+ #include <linux/slab.h>
+ #include <linux/security.h>
+ #include <linux/syscalls.h>
++#ifndef __GENKSYMS__
+ #include <linux/user_namespace.h>
++#endif
+ #include <asm/uaccess.h>
+ 
+ /* init to 2 - one for init_task, one to ensure it is never freed */
