@@ -1,0 +1,80 @@
+From: David Howells <dhowells@redhat.com>
+Date: Thu, 22 Jan 2015 22:34:32 +0000
+Subject: [PATCH] KEYS: Make /proc/keys unconditional if CONFIG_KEYS=y
+Git-commit: dabd39cc2fb1b0e97313ebbe7309ea8e05b7cfb5
+Patch-mainline: v4.0
+References: boo#956934
+
+Now that /proc/keys is used by libkeyutils to look up a key by type and
+description, we should make it unconditional and remove
+CONFIG_DEBUG_PROC_KEYS.
+
+Reported-by: Jiri Kosina <jkosina@suse.cz>
+Signed-off-by: David Howells <dhowells@redhat.com>
+Tested-by: Jiri Kosina <jkosina@suse.cz>
+Acked-by: NeilBrown <neilb@suse.com>
+
+---
+ Documentation/security/keys.txt |    2 --
+ security/keys/proc.c            |    8 --------
+ 2 files changed, 10 deletions(-)
+
+--- a/Documentation/security/keys.txt
++++ b/Documentation/security/keys.txt
+@@ -323,8 +323,6 @@ about the status of the key service:
+ 	U	Under construction by callback to userspace
+ 	N	Negative key
+ 
+-     This file must be enabled at kernel configuration time as it allows anyone
+-     to list the keys database.
+ 
+  (*) /proc/key-users
+ 
+--- a/security/keys/proc.c
++++ b/security/keys/proc.c
+@@ -18,7 +18,6 @@
+ #include <asm/errno.h>
+ #include "internal.h"
+ 
+-#ifdef CONFIG_KEYS_DEBUG_PROC_KEYS
+ static int proc_keys_open(struct inode *inode, struct file *file);
+ static void *proc_keys_start(struct seq_file *p, loff_t *_pos);
+ static void *proc_keys_next(struct seq_file *p, void *v, loff_t *_pos);
+@@ -38,7 +37,6 @@ static const struct file_operations proc
+ 	.llseek		= seq_lseek,
+ 	.release	= seq_release,
+ };
+-#endif
+ 
+ static int proc_key_users_open(struct inode *inode, struct file *file);
+ static void *proc_key_users_start(struct seq_file *p, loff_t *_pos);
+@@ -67,11 +65,9 @@ static int __init key_proc_init(void)
+ {
+ 	struct proc_dir_entry *p;
+ 
+-#ifdef CONFIG_KEYS_DEBUG_PROC_KEYS
+ 	p = proc_create("keys", 0, NULL, &proc_keys_fops);
+ 	if (!p)
+ 		panic("Cannot create /proc/keys\n");
+-#endif
+ 
+ 	p = proc_create("key-users", 0, NULL, &proc_key_users_fops);
+ 	if (!p)
+@@ -86,8 +82,6 @@ __initcall(key_proc_init);
+  * Implement "/proc/keys" to provide a list of the keys on the system that
+  * grant View permission to the caller.
+  */
+-#ifdef CONFIG_KEYS_DEBUG_PROC_KEYS
+-
+ static struct rb_node *key_serial_next(struct seq_file *p, struct rb_node *n)
+ {
+ 	struct user_namespace *user_ns = seq_user_ns(p);
+@@ -268,8 +262,6 @@ static int proc_keys_show(struct seq_fil
+ 	return 0;
+ }
+ 
+-#endif /* CONFIG_KEYS_DEBUG_PROC_KEYS */
+-
+ static struct rb_node *__key_user_next(struct user_namespace *user_ns, struct rb_node *n)
+ {
+ 	while (n) {
