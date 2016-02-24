@@ -1,0 +1,28 @@
+From: David Sterba <dsterba@suse.com>
+Date: Thu, 11 Feb 2016 15:30:07 +0100
+Patch-mainline: submitted, Thu, 11 Feb 2016 15:30:07 +0100
+Subject: [PATCH] btrfs: remove error message from search ioctl for nonexistent
+ tree
+
+Let's remove the error message that appears when the tree_id is not
+present. This can happen with the quota tree and has been observed in
+practice. The applications are supposed to handle -ENOENT and we don't
+need to report that in the system log as it's not a fatal error.
+
+Reported-by: Vlastimil Babka <vbabka@suse.com>
+Signed-off-by: David Sterba <dsterba@suse.com>
+---
+ fs/btrfs/ioctl.c |    2 --
+ 1 file changed, 2 deletions(-)
+
+--- a/fs/btrfs/ioctl.c
++++ b/fs/btrfs/ioctl.c
+@@ -2114,8 +2114,6 @@ static noinline int search_ioctl(struct
+ 		key.offset = (u64)-1;
+ 		root = btrfs_read_fs_root_no_name(info, &key);
+ 		if (IS_ERR(root)) {
+-			printk(KERN_ERR "BTRFS: could not find root %llu\n",
+-			       sk->tree_id);
+ 			btrfs_free_path(path);
+ 			return -ENOENT;
+ 		}
