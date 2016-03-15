@@ -1,0 +1,52 @@
+From 747a2df036018bda7a5847c9a1daa1ed50ec215c Mon Sep 17 00:00:00 2001
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Date: Fri, 19 Feb 2016 17:36:21 -0800
+Subject: [PATCH] AIO: properly check iovec sizes
+References: bsc#969355, CVE-2015-8830
+Git-commit: 4c185ce06dca14f5cea192f5a2c981ef50663f2b
+Patch-mainline: v4.0-rc5
+
+In Linus's tree, the iovec code has been reworked massively, but in
+older kernels the AIO layer should be checking this before passing the
+request on to other layers.
+
+Many thanks to Ben Hawkes of Google Project Zero for pointing out the
+issue.
+
+Stable Git-id: 2698377daeb469a9d68021979d2e506922f788da
+
+Reported-by: Ben Hawkes <hawkes@google.com>
+Acked-by: Benjamin LaHaise <bcrl@kvack.org>
+Tested-by: Willy Tarreau <w@1wt.eu>
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Acked-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+---
+ fs/aio.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/fs/aio.c b/fs/aio.c
+index 7815785..5bded69 100644
+--- a/fs/aio.c
++++ b/fs/aio.c
+@@ -1486,11 +1486,16 @@ static ssize_t aio_setup_single_vector(struct kiocb *kiocb,
+ 				       unsigned long *nr_segs,
+ 				       struct iovec *iovec)
+ {
+-	if (unlikely(!access_ok(!rw, buf, kiocb->ki_nbytes)))
++	size_t len = kiocb->ki_nbytes;
++
++	if (len > MAX_RW_COUNT)
++		len = MAX_RW_COUNT;
++
++	if (unlikely(!access_ok(!rw, buf, len)))
+ 		return -EFAULT;
+ 
+ 	iovec->iov_base = buf;
+-	iovec->iov_len = kiocb->ki_nbytes;
++	iovec->iov_len = len;
+ 	*nr_segs = 1;
+ 	return 0;
+ }
+-- 
+2.6.2
+
