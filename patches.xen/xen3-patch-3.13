@@ -229,7 +229,7 @@ Acked-by: jbeulich@suse.com
  {
  #ifndef CONFIG_XEN
  	unsigned int ver = 0;
-@@ -643,7 +649,7 @@ static int _acpi_map_lsapic(acpi_handle 
+@@ -643,7 +649,7 @@ static int _acpi_map_lsapic(acpi_handle
  	return 0;
  }
  #else
@@ -500,7 +500,7 @@ Acked-by: jbeulich@suse.com
  	p->thread.io_bitmap_ptr = NULL;
  	tsk = current;
  	err = -ENOMEM;
-@@ -355,6 +355,14 @@ __switch_to(struct task_struct *prev_p, 
+@@ -355,6 +355,14 @@ __switch_to(struct task_struct *prev_p,
  	}
  
  	/*
@@ -535,7 +535,7 @@ Acked-by: jbeulich@suse.com
  	p->thread.io_bitmap_ptr = NULL;
  
  	savesegment(gs, p->thread.gsindex);
-@@ -424,6 +424,14 @@ __switch_to(struct task_struct *prev_p, 
+@@ -424,6 +424,14 @@ __switch_to(struct task_struct *prev_p,
  	 */
  	this_cpu_write(current_task, next_p);
  
@@ -668,7 +668,7 @@ Acked-by: jbeulich@suse.com
  }
  
  void math_state_restore(void)
-@@ -772,6 +772,33 @@ static const trap_info_t trap_table[] = 
+@@ -772,6 +772,33 @@ static const trap_info_t trap_table[] =
  	{ }
  };
  
@@ -764,7 +764,7 @@ Acked-by: jbeulich@suse.com
  		return;
  	}
  
-@@ -1074,7 +1095,7 @@ __do_page_fault(struct pt_regs *regs, un
+@@ -1077,7 +1098,7 @@ __do_page_fault(struct pt_regs *regs, un
  			return;
  
  		/* kprobes don't want to hook the spurious faults: */
@@ -773,7 +773,7 @@ Acked-by: jbeulich@suse.com
  			return;
  		/*
  		 * Don't take the mm semaphore here. If we fixup a prefetch
-@@ -1086,23 +1107,8 @@ __do_page_fault(struct pt_regs *regs, un
+@@ -1089,23 +1110,8 @@ __do_page_fault(struct pt_regs *regs, un
  	}
  
  	/* kprobes don't want to hook the spurious faults: */
@@ -798,7 +798,7 @@ Acked-by: jbeulich@suse.com
  
  	if (unlikely(error_code & PF_RSVD))
  		pgtable_bad(regs, error_code, address);
-@@ -1114,8 +1120,6 @@ __do_page_fault(struct pt_regs *regs, un
+@@ -1117,8 +1123,6 @@ __do_page_fault(struct pt_regs *regs, un
  		}
  	}
  
@@ -807,7 +807,7 @@ Acked-by: jbeulich@suse.com
  	/*
  	 * If we're in an interrupt, have no user context or are running
  	 * in an atomic region then we must not take the fault:
-@@ -1125,6 +1129,24 @@ __do_page_fault(struct pt_regs *regs, un
+@@ -1128,6 +1132,24 @@ __do_page_fault(struct pt_regs *regs, un
  		return;
  	}
  
@@ -832,7 +832,7 @@ Acked-by: jbeulich@suse.com
  	if (error_code & PF_WRITE)
  		flags |= FAULT_FLAG_WRITE;
  
-@@ -1257,3 +1279,23 @@ do_page_fault(struct pt_regs *regs, unsi
+@@ -1260,3 +1282,23 @@ do_page_fault(struct pt_regs *regs, unsi
  	__do_page_fault(regs, error_code);
  	exception_exit(prev_state);
  }
@@ -1133,7 +1133,7 @@ Acked-by: jbeulich@suse.com
  #if defined(CONFIG_SMP) && defined(CONFIG_PROCESSOR_EXTERNAL_CONTROL)
 --- a/drivers/acpi/processor_core.c
 +++ b/drivers/acpi/processor_core.c
-@@ -193,7 +193,7 @@ int acpi_get_apicid(acpi_handle handle, 
+@@ -193,7 +193,7 @@ int acpi_get_apicid(acpi_handle handle,
  
  int acpi_map_cpuid(int apic_id, u32 acpi_id)
  {
@@ -1144,7 +1144,7 @@ Acked-by: jbeulich@suse.com
  
 --- a/drivers/hwmon/coretemp-xen.c
 +++ b/drivers/hwmon/coretemp-xen.c
-@@ -53,7 +53,7 @@ MODULE_PARM_DESC(tjmax, "TjMax value in 
+@@ -53,7 +53,7 @@ MODULE_PARM_DESC(tjmax, "TjMax value in
  
  #define BASE_SYSFS_ATTR_NO	2	/* Sysfs Base attr no for coretemp */
  #define NUM_REAL_CORES		32	/* Number of Real cores per cpu */
@@ -1193,7 +1193,7 @@ Acked-by: jbeulich@suse.com
   * to determine if MSI/-X are supported for the device. If MSI/-X is
   * supported return 0, else return an error code.
   **/
-@@ -700,7 +700,7 @@ int pci_enable_msi_block(struct pci_dev 
+@@ -700,7 +700,7 @@ int pci_enable_msi_block(struct pci_dev
  	u16 msgctl;
  	struct msi_dev_list *msi_dev_entry = get_msi_dev_pirq_list(dev);
  
@@ -1279,7 +1279,7 @@ Acked-by: jbeulich@suse.com
  	       ? max_t(unsigned int, XEN_NETIF_NR_SLOTS_MIN,
  		       MAX_SKB_FRAGS + 2/* header + extra_info + frags */)
  	       : 1; /* all in one */
-@@ -840,7 +840,14 @@ static void net_rx_action(unsigned long 
+@@ -840,7 +840,14 @@ static void net_rx_action(unsigned long
  			resp->flags |= XEN_NETRXF_extra_info;
  
  			gso->u.gso.size = meta[npo.meta_cons].frag.size;
@@ -1385,7 +1385,7 @@ Acked-by: jbeulich@suse.com
  	err = xenbus_write(xbt, dev->nodename, "feature-sg", "1");
  	if (err) {
  		message = "writing feature-sg";
-@@ -1489,7 +1500,7 @@ err:	
+@@ -1489,7 +1500,7 @@ err:
  		u64_stats_update_end(&stats->syncp);
  
  		/* Pass it up. */
@@ -1394,7 +1394,7 @@ Acked-by: jbeulich@suse.com
  	}
  
  	/* If we get a callback with very few responses, reduce fill target. */
-@@ -1516,6 +1527,8 @@ err:	
+@@ -1516,6 +1527,8 @@ err:
  	}
  
  	if (work_done < budget) {
