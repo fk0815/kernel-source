@@ -63,7 +63,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  };
  #define netbk_rx_cb(skb) ((struct netbk_rx_cb *)skb->cb)
  
-@@ -168,6 +169,9 @@ MODULE_PARM_DESC(max_tx_slots, "Maximum 
+@@ -168,6 +169,9 @@ MODULE_PARM_DESC(max_tx_slots, "Maximum
  static bool MODPARM_copy_skb = true;
  module_param_named(copy_skb, MODPARM_copy_skb, bool, 0);
  MODULE_PARM_DESC(copy_skb, "Copy data received from netfront without netloop");
@@ -297,7 +297,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  			    ? 0 : XEN_NETRXF_more_data;
  
  		make_rx_response(netif, meta->id, status,
-@@ -845,7 +946,8 @@ static void net_rx_action(unsigned long 
+@@ -845,7 +946,8 @@ static void net_rx_action(unsigned long
  		skb->dev->stats.tx_packets++;
  
  		id = netbk->meta[npo.meta_cons].id;
@@ -307,7 +307,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  
  		switch (skb->ip_summed) {
  		case CHECKSUM_PARTIAL: /* local packet? */
-@@ -862,7 +964,11 @@ static void net_rx_action(unsigned long 
+@@ -862,7 +964,11 @@ static void net_rx_action(unsigned long
  		else
  			offset = offset_in_page(skb->data);
  		resp = make_rx_response(netif, id, status, offset,
@@ -320,7 +320,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  
  		if (netbk->meta[npo.meta_cons].frag.size) {
  			struct netif_extra_info *gso =
-@@ -2106,6 +2212,14 @@ static int __init netback_init(void)
+@@ -2107,6 +2213,14 @@ static int __init netback_init(void)
  		max_tx_slots = XEN_NETIF_NR_SLOTS_MIN;
  	}
  
