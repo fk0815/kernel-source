@@ -38,7 +38,7 @@ usage() {
 SYNOPSIS: $0 [-qv] [--symbol=...] [--dir=...]
           [--fast] [last-patch-name] [--vanilla] [--fuzz=NUM]
           [--patch-dir=PATH] [--build-dir=PATH] [--config=ARCH-FLAVOR [--kabi]]
-          [--ctags] [--cscope] [--no-xen] [--skip-reverse]
+          [--ctags] [--cscope] [--skip-reverse]
 
   The --build-dir option supports internal shell aliases, like ~, and variable
   expansion when the variables are properly escaped.  Environment variables
@@ -63,7 +63,7 @@ SYNOPSIS: $0 [-qv] [--symbol=...] [--dir=...]
   of the component patches fail to apply the tree will not be rolled
   back.
 
-  When used with last-patch-name or --no-xen, both --fast and --no-quilt
+  When used with last-patch-name, both --fast and --no-quilt
   will set up a quilt environment for the remaining patches.
 END
     exit 1
@@ -71,7 +71,7 @@ END
 
 apply_fast_patches() {
     echo "[ Fast-applying ${#PATCHES_BEFORE[@]} patches. ${#PATCHES_AFTER[@]} remain. ]"
-    LAST_LOG=$(cat "${PATCHES_BEFORE[@]}" | \
+    LAST_LOG=$(echo "${PATCHES_BEFORE[@]}" | xargs cat | \
         patch -d $PATCH_DIR -p1 -E $fuzz --force --no-backup-if-mismatch \
 		-s 2>&1)
     STATUS=$?
@@ -198,7 +198,7 @@ if $have_arch_patches; then
 else
 	arch_opt=""
 fi
-options=`getopt -o qvd:F: --long quilt,no-quilt,$arch_opt,symbol:,dir:,combine,fast,vanilla,fuzz,patch-dir:,build-dir:,config:,kabi,ctags,cscope,no-xen,skip-reverse -- "$@"`
+options=`getopt -o qvd:F: --long quilt,no-quilt,$arch_opt,symbol:,dir:,combine,fast,vanilla,fuzz,patch-dir:,build-dir:,config:,kabi,ctags,cscope,skip-reverse -- "$@"`
 
 if [ $? -ne 0 ]
 then
@@ -219,7 +219,6 @@ CONFIG_FLAVOR=
 KABI=false
 CTAGS=false
 CSCOPE=false
-SKIP_XEN=false
 SKIP_REVERSE=false
 
 while true; do
@@ -282,9 +281,6 @@ while true; do
 	--cscope)
 	    CSCOPE=true
 	    ;;
-	--no-xen)
-	    SKIP_XEN=true
-	    ;;
 	--skip-reverse)
 	    SKIP_REVERSE=true
 	    ;;
@@ -308,9 +304,15 @@ if test -z "$CONFIG"; then
 		CONFIG=$(uname -m)-vanilla
 	else
 		machine=$(uname -m)
+		# XXX: We could use scripts/arch-symbols here, but it is
+		# not unified among branches and has weird behavior in some
 		case "$machine" in
 		i?86)
 			machine=i386
+			;;
+		aarch64)
+			machine=arm64
+			;;
 		esac
 		if test -e "config/$machine/smp"; then
 			CONFIG=$machine-smp
@@ -318,9 +320,19 @@ if test -z "$CONFIG"; then
 			CONFIG=$machine-pae
 		elif test -e "config/$machine/default"; then
 			CONFIG=$machine-default
-		elif test -e "config/$machine/rt"; then
-			CONFIG=$machine-rt
+		elif test -n "$VARIANT" -a -e "config/$machine/${VARIANT#-}"; then
+			CONFIG=$machine$VARIANT
 		else
+			# Try other architectures and assume the user is able
+			# to cross-compile
+			for machine in x86_64 ppc64 ppc64le arm64 s390x; do
+				if test -e "config/$machine/default"; then
+					CONFIG=$machine-default
+					break
+				fi
+			done
+		fi
+		if test -z "$CONFIG"; then
 			echo "Cannot determine default config for arch $machine"
 		fi
 	fi
@@ -338,13 +350,6 @@ fi
 
 if [ $# -ne 0 ]; then
     usage
-fi
-
-if ! scripts/guards --prefix=config $(scripts/arch-symbols --list) < config.conf | \
-     egrep -q '/(xen|ec2|pv)$'; then
-     echo "*** Xen configs are disabled; Skipping Xen patches." >&2
-
-     SKIP_XEN=true
 fi
 
 # Some patches require patch 2.5.4. Abort with older versions.
@@ -445,7 +450,7 @@ fi
 
 # Create fresh $SCRATCH_AREA/linux-$SRCVERSION.
 if ! [ -d $ORIG_DIR ]; then
-    unpack_tarball "$SRCVERSION" "$ORIG_DIR"
+    unpack_tarball "$SRCVERSION" "$ORIG_DIR" "$URL"
     find $ORIG_DIR -type f | xargs chmod a-w,a+r
 fi
 
@@ -456,7 +461,7 @@ else
 fi
 
 # Check if patch $LIMIT exists
-if [ -n "$LIMIT" ] || $SKIP_XEN; then
+if [ -n "$LIMIT" ]; then
     for ((n=0; n<${#PATCHES[@]}; n++)); do
 	if [ "$LIMIT" = - ]; then
 	    LIMIT=${PATCHES[n]}
@@ -467,12 +472,6 @@ if [ -n "$LIMIT" ] || $SKIP_XEN; then
 	    LIMIT=${PATCHES[n]}
 	    break
 	    ;;
-	patches.xen/*)
-            if $SKIP_XEN; then
-                LIMIT=${PATCHES[n-1]}
-                break
-            fi
-            ;;
 	esac
     done
     if [ -n "$LIMIT" ] && ((n == ${#PATCHES[@]})); then
@@ -587,6 +586,14 @@ if test "$SP_BUILD_DIR" != "$PATCH_DIR"; then
     rm -f "$SP_BUILD_DIR/patches"
     ln -sf "$PATCH_DIR" "$SP_BUILD_DIR/source"
     ln -sf "source/patches" "$SP_BUILD_DIR/patches"
+    cat > $PATCH_DIR/GNUmakefile <<EOF
+ifeq (\$(filter tags TAGS cscope gtags, \$(MAKECMDGOALS)),)
+ifndef KBUILD_OUTPUT
+KBUILD_OUTPUT=$SP_BUILD_DIR
+endif
+endif
+include Makefile
+EOF
 fi
 
 # If there are any remaining patches, add them to the series so
@@ -607,7 +614,19 @@ fi
 if test -n "$CONFIG"; then
     if test -e "config/$CONFIG_ARCH/$CONFIG_FLAVOR"; then
 	echo "[ Copying config/$CONFIG_ARCH/$CONFIG_FLAVOR ]"
-	cp -a "config/$CONFIG_ARCH/$CONFIG_FLAVOR" "$SP_BUILD_DIR/.config"
+	if [ "$CONFIG_FLAVOR" = "vanilla" ] && \
+	   grep -q CONFIG_MMU= "config/$CONFIG_ARCH/$CONFIG_FLAVOR"; then
+	    if [ "$CONFIG_ARCH" = "i386" ]; then
+		vanilla_base="config/$CONFIG_ARCH/pae"
+	    else
+		vanilla_base="config/$CONFIG_ARCH/default"
+	    fi
+	    scripts/config-merge "$vanilla_base" \
+				 "config/$CONFIG_ARCH/$CONFIG_FLAVOR" \
+				 > "$SP_BUILD_DIR/.config"
+	else
+	    cp -a "config/$CONFIG_ARCH/$CONFIG_FLAVOR" "$SP_BUILD_DIR/.config"
+	fi
     else
 	echo "[ Config $CONFIG does not exist. ]"
     fi
@@ -623,6 +642,16 @@ if test -n "$CONFIG"; then
 	    echo "[ No kABI references for $CONFIG ]"
 	fi
     fi
+    test "$SP_BUILD_DIR" != "$PATCH_DIR" && \
+	make -C $PATCH_DIR O=$SP_BUILD_DIR -s silentoldconfig
+fi
+
+if [ "rpm/*.crt" != 'rpm/*.crt' ]
+then
+    for cert in rpm/*.crt; do
+	echo "[ Copying $cert ]"
+	cp "$cert" "$SP_BUILD_DIR/"
+    done
 fi
 
 # Some archs we use for the config do not exist or have a different name in the
