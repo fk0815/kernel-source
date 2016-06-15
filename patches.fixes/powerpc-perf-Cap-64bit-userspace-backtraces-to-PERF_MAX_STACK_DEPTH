@@ -1,0 +1,29 @@
+From: Anton Blanchard <anton@samba.org>
+Subject: powerpc/perf: Cap 64bit userspace backtraces to PERF_MAX_STACK_DEPTH
+Git-commit: 9a5cbce421a283e6aea3c4007f141735bf9da8c3
+Patch-mainline: v4.1-rc1
+References: bsc#942702
+
+ powerpc/perf: Cap 64bit userspace backtraces to PERF_MAX_STACK_DEPTH
+
+We cap 32bit userspace backtraces to PERF_MAX_STACK_DEPTH
+(currently 127), but we forgot to do the same for 64bit backtraces.
+
+Cc: stable@vger.kernel.org
+Signed-off-by: Anton Blanchard <anton@samba.org>
+Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
+Acked-by: Torsten Duwe <duwe@suse.de>
+
+diff --git a/arch/powerpc/perf/callchain.c b/arch/powerpc/perf/callchain.c
+index 2396dda..ead5535 100644
+--- a/arch/powerpc/perf/callchain.c
++++ b/arch/powerpc/perf/callchain.c
+@@ -243,7 +243,7 @@ static void perf_callchain_user_64(struct perf_callchain_entry *entry,
+ 	sp = regs->gpr[1];
+ 	perf_callchain_store(entry, next_ip);
+ 
+-	for (;;) {
++	while (entry->nr < PERF_MAX_STACK_DEPTH) {
+ 		fp = (unsigned long __user *) sp;
+ 		if (!valid_user_sp(sp, 1) || read_user_stack_64(fp, &next_sp))
+ 			return;
