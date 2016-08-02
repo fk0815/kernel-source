@@ -1,7 +1,6 @@
 From: Andy Lutomirski <luto@amacapital.net>
 Date: Sat, 22 Nov 2014 18:00:31 -0800
 Subject: x86_64, traps: Fix the espfix64 #DF fixup and rewrite it in C
-Git-repo: git://kerncvs.suse.de/kernel.git
 Git-commit: af726f21ed8af2cdaa4e93098dc211521218ae65
 Patch-mainline: v3.18-rc6
 References: bsc#907818,CVE-2014-9090
@@ -26,10 +25,8 @@ Acked-by: Borislav Petkov <bp@suse.de>
  arch/x86/kernel/traps.c    | 24 ++++++++++++++++++++++++
  2 files changed, 26 insertions(+), 32 deletions(-)
 
-Index: kernel/arch/x86/kernel/entry_64.S
-===================================================================
---- kernel.orig/arch/x86/kernel/entry_64.S
-+++ kernel/arch/x86/kernel/entry_64.S
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
 @@ -845,6 +845,7 @@ ENTRY(native_iret)
  	jnz native_irq_return_ldt
  #endif
@@ -85,10 +82,8 @@ Index: kernel/arch/x86/kernel/entry_64.S
  idtentry coprocessor_segment_overrun do_coprocessor_segment_overrun has_error_code=0
  idtentry invalid_TSS do_invalid_TSS has_error_code=1
  idtentry segment_not_present do_segment_not_present has_error_code=1
-Index: kernel/arch/x86/kernel/traps.c
-===================================================================
---- kernel.orig/arch/x86/kernel/traps.c
-+++ kernel/arch/x86/kernel/traps.c
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
 @@ -259,6 +259,30 @@ dotraplinkage void do_double_fault(struc
  	static const char str[] = "double fault";
  	struct task_struct *tsk = current;

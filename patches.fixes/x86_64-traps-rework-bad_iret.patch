@@ -1,8 +1,7 @@
 From: Andy Lutomirski <luto@amacapital.net>
 Date: Sat, 22 Nov 2014 18:00:33 -0800
 Subject: x86_64, traps: Rework bad_iret
-Git-repo: git://kerncvs.suse.de/kernel.git
-Git-commit: b645af2d5905
+Git-commit: b645af2d5905c4e32399005b867987919cbfc3ae
 Patch-mainline: v3.18-rc6
 References: bsc#909077,CVE-2014-8133
 
@@ -36,10 +35,8 @@ Acked-by: Borislav Petkov <bp@suse.de>
  arch/x86/kernel/traps.c    | 29 +++++++++++++++++++++++++++++
  2 files changed, 48 insertions(+), 26 deletions(-)
 
-Index: current/arch/x86/kernel/entry_64.S
-===================================================================
---- current.orig/arch/x86/kernel/entry_64.S
-+++ current/arch/x86/kernel/entry_64.S
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
 @@ -844,8 +844,13 @@ ENTRY(native_iret)
  
  .global native_irq_return_iret
@@ -119,10 +116,8 @@ Index: current/arch/x86/kernel/entry_64.S
  	CFI_ENDPROC
  END(error_entry)
  
-Index: current/arch/x86/kernel/traps.c
-===================================================================
---- current.orig/arch/x86/kernel/traps.c
-+++ current/arch/x86/kernel/traps.c
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
 @@ -407,6 +407,35 @@ asmlinkage __visible struct pt_regs *syn
  	return regs;
  }

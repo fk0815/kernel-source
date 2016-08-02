@@ -1,9 +1,7 @@
 From: Andy Lutomirski <luto@amacapital.net>
 Date: Sat, 22 Nov 2014 18:00:33 -0800
 Subject: x86_64, traps: Rework bad_iret
-Git-repo: git://kerncvs.suse.de/kernel.git
-Git-commit: b645af2d5905
-Patch-mainline: v3.18-rc6
+Patch-mainline: Never, SUSE-Xen specific
 References: bsc#909077,CVE-2014-8133
 
 It's possible for iretq to userspace to fail.  This can happen because

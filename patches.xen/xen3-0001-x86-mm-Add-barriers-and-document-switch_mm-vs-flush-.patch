@@ -3,8 +3,7 @@ From: Andy Lutomirski <luto@kernel.org>
 Date: Wed, 6 Jan 2016 12:21:01 -0800
 Subject: [PATCH] x86/mm: Add barriers and document switch_mm()-vs-flush
  synchronization
-Git-commit: 71b3c126e61177eb693423f2e18a1914205b165e
-Patch-mainline: 4.5-rc1
+Patch-mainline: Never, SUSE-Xen specific
 References: bnc#963767, CVE-2016-2069
 
 When switch_mm() activates a new PGD, it also sets a bit that

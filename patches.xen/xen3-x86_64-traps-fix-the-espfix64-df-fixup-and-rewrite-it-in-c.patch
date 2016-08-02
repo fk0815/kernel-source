@@ -1,9 +1,7 @@
 From: Andy Lutomirski <luto@amacapital.net>
 Date: Sat, 22 Nov 2014 18:00:31 -0800
 Subject: x86_64, traps: Fix the espfix64 #DF fixup and rewrite it in C
-Git-repo: git://kerncvs.suse.de/kernel.git
-Git-commit: af726f21ed8af2cdaa4e93098dc211521218ae65
-Patch-mainline: v3.18-rc6
+Patch-mainline: Never, SUSE-Xen specific
 References: bsc#907818,CVE-2014-9090
 
 commit af726f21ed8af2cdaa4e93098dc211521218ae65 upstream.

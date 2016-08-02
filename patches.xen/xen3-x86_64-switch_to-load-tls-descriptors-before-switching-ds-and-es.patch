@@ -1,8 +1,7 @@
 From: Andy Lutomirski <luto@amacapital.net>
 Date: Mon, 8 Dec 2014 13:55:20 -0800
 Subject: x86_64, switch_to(): Load TLS descriptors before switching DS and ES
-Git-commit: f647d7c155f069c1a068030255c300663516420e
-Patch-mainline: v3.19-rc1
+Patch-mainline: Never, SUSE-Xen specific
 References: bsc#911326, CVE-2014-9419
 
 Otherwise, if buggy user code points DS or ES into the TLS
@@ -161,8 +160,12 @@ Signed-off-by: Ingo Molnar <mingo@kernel.org>
 Acked-by: Borislav Petkov <bp@suse.de>
 Automatically created from "patches.arch/x86_64-switch_to-load-tls-descriptors-before-switching-ds-and-es.patch" by xen-port-patches.py
 
---- 13.2.orig/arch/x86/kernel/process_64-xen.c	2014-06-27 10:54:54.000000000 +0200
-+++ 13.2/arch/x86/kernel/process_64-xen.c	2015-01-13 16:18:07.000000000 +0100
+---
+ arch/x86/kernel/process_64-xen.c |   68 +++++++++++++++++++++++++++++----------
+ 1 file changed, 52 insertions(+), 16 deletions(-)
+
+--- a/arch/x86/kernel/process_64-xen.c
++++ b/arch/x86/kernel/process_64-xen.c
 @@ -304,17 +304,15 @@ __switch_to(struct task_struct *prev_p, 
  
  	fpu = xen_switch_fpu_prepare(prev_p, next_p, cpu, &mcl);
