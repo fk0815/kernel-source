@@ -1,6 +1,6 @@
 From: Olaf Hering <olaf@aepfle.de>
 Date: Thu, 10 Jul 2014 19:10:43 +0200
-Patch-mainline: submitted
+Patch-mainline: Never, SUSE-Xen specific
 Subject: netbk: Don't destroy the netdev until the vif is shut down
 References: bnc#881008 	
 
@@ -26,8 +26,8 @@ Acked-by: <ohering@suse.de>
  drivers/xen/netback/xenbus.c    | 34 ++++++++++++++--------------------
  3 files changed, 26 insertions(+), 25 deletions(-)
 
---- 13.2.orig/drivers/xen/netback/common.h	2014-01-28 17:45:44.000000000 +0100
-+++ 13.2/drivers/xen/netback/common.h	2014-07-24 13:36:36.000000000 +0200
+--- a/drivers/xen/netback/common.h
++++ b/drivers/xen/netback/common.h
 @@ -179,6 +179,7 @@ void netif_accel_init(void);
  #define NET_RX_RING_SIZE __CONST_RING_SIZE(netif_rx, PAGE_SIZE)
  
@@ -36,8 +36,8 @@ Acked-by: <ohering@suse.de>
  
  netif_t *netif_alloc(struct device *parent, domid_t domid, unsigned int handle);
  int netif_map(struct backend_info *be, grant_ref_t tx_ring_ref,
---- 13.2.orig/drivers/xen/netback/interface.c	2014-01-28 17:28:51.000000000 +0100
-+++ 13.2/drivers/xen/netback/interface.c	2014-08-08 12:27:56.000000000 +0200
+--- a/drivers/xen/netback/interface.c
++++ b/drivers/xen/netback/interface.c
 @@ -301,6 +301,7 @@ int netif_map(struct backend_info *be, g
  		dev_set_mtu(netif->dev, ETH_DATA_LEN);
  	netdev_update_features(netif->dev);
@@ -56,14 +56,7 @@ Acked-by: <ohering@suse.de>
  	if (netback_carrier_ok(netif)) {
  		rtnl_lock();
  		netback_carrier_off(netif);
-@@ -327,21 +331,24 @@ void netif_disconnect(struct backend_inf
- 		netif_put(netif);
- 	}
- 
--	atomic_dec(&netif->refcnt);
--	wait_event(netif->waiting_to_free, atomic_read(&netif->refcnt) == 0);
-+	wait_event(netif->waiting_to_free, atomic_read(&netif->refcnt) == 1);
- 
+@@ -329,15 +333,19 @@ void netif_disconnect(struct backend_inf
  	del_timer_sync(&netif->credit_timeout);
  	del_timer_sync(&netif->tx_queue_timeout);
  
@@ -87,8 +80,8 @@ Acked-by: <ohering@suse.de>
 +	unregister_netdev(netif->dev);
  	free_netdev(netif->dev);
  }
---- 13.2.orig/drivers/xen/netback/xenbus.c	2014-01-28 17:46:17.000000000 +0100
-+++ 13.2/drivers/xen/netback/xenbus.c	2014-08-08 12:26:01.000000000 +0200
+--- a/drivers/xen/netback/xenbus.c
++++ b/drivers/xen/netback/xenbus.c
 @@ -28,7 +28,6 @@ static int connect_rings(struct backend_
  static void connect(struct backend_info *);
  static void backend_create_netif(struct backend_info *be);
