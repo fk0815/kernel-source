@@ -1,0 +1,40 @@
+From: Pravin B Shelar <pshelar@nicira.com>
+Date: Thu, 17 Jul 2014 15:14:15 -0700
+Subject: introduce NETIF_F_GSO_ENCAP_ALL helper mask
+Patch-mainline: v3.17-rc1
+Git-commit: f6eec614d2252a99b861e288b6301599d2d58da4 (partial)
+References: bsc#1001486
+
+Add NETIF_F_GSO_ENCAP_ALL mask covering all encapsulation GSO flags.
+
+Signed-off-by: Pravin B Shelar <pshelar@nicira.com>
+Acked-by: Andy Zhou <azhou@nicira.com>
+Signed-off-by: Michal Kubecek <mkubecek@suse.cz>
+
+openSUSE-13.2: only introduce the helper, do not pick the openvswitch
+change the original commit was about.
+
+---
+ include/linux/netdev_features.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/include/linux/netdev_features.h b/include/linux/netdev_features.h
+index d99800cbdcf3..dcfdecbfa0b7 100644
+--- a/include/linux/netdev_features.h
++++ b/include/linux/netdev_features.h
+@@ -176,4 +176,12 @@ enum {
+ 				 NETIF_F_HW_VLAN_STAG_RX | \
+ 				 NETIF_F_HW_VLAN_STAG_TX)
+ 
++#define NETIF_F_GSO_ENCAP_ALL	(NETIF_F_GSO_GRE |			\
++				 NETIF_F_GSO_GRE_CSUM |			\
++				 NETIF_F_GSO_IPIP |			\
++				 NETIF_F_GSO_SIT |			\
++				 NETIF_F_GSO_UDP_TUNNEL |		\
++				 NETIF_F_GSO_UDP_TUNNEL_CSUM |		\
++				 NETIF_F_GSO_MPLS)
++
+ #endif	/* _LINUX_NETDEV_FEATURES_H */
+-- 
+2.10.1
+
