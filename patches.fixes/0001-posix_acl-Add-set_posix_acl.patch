@@ -18,12 +18,12 @@ Signed-off-by: J. Bruce Fields <bfields@redhat.com>
 Acked-by: NeilBrown <neilb@suse.com>
 
 ---
- fs/posix_acl.c |   39 ++++++++++++++++++++++-----------------
- 1 file changed, 22 insertions(+), 17 deletions(-)
+ fs/posix_acl.c |   38 +++++++++++++++++++++-----------------
+ 1 file changed, 21 insertions(+), 17 deletions(-)
 
 --- a/fs/posix_acl.c
 +++ b/fs/posix_acl.c
-@@ -787,38 +787,43 @@ posix_acl_xattr_get(struct dentry *dentr
+@@ -787,38 +787,42 @@ posix_acl_xattr_get(struct dentry *dentr
  	return error;
  }
  
@@ -65,7 +65,6 @@ Acked-by: NeilBrown <neilb@suse.com>
 +	struct posix_acl *acl = NULL;
 +	int ret;
 +
-+		return -EINVAL;
  	if (value) {
  		acl = posix_acl_from_xattr(&init_user_ns, value, size);
  		if (IS_ERR(acl))
