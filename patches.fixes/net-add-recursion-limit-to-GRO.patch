@@ -1,7 +1,11 @@
 From: Sabrina Dubroca <sd@queasysnail.net>
-Date: Thu, 15 Sep 2016 10:49:30 +0200
+Date: Thu, 20 Oct 2016 15:58:02 +0200
 Subject: net: add recursion limit to GRO
-Patch-mainline: Not yet, embargoed
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Patch-mainline: v4.9-rc4
+Git-commit: fcd91dd449867c6bfe56a81cabba76b829fd05cd
 References: CVE-2016-7039 bsc#1001486
 
 Currently, GRO can do unlimited recursion through the gro_receive
@@ -12,20 +16,31 @@ receive a packet composed entirely of VLAN headers.
 
 This patch adds a recursion counter to the GRO layer to prevent stack
 overflow.  When a gro_receive function hits the recursion limit, GRO is
-aborted for this skb and it is processed normally.
+aborted for this skb and it is processed normally.  This recursion
+counter is put in the GRO CB, but could be turned into a percpu counter
+if we run out of space in the CB.
 
+Thanks to Vladimír Beneš <vbenes@redhat.com> for the initial bug report.
+
+Fixes: CVE-2016-7039
 Fixes: 9b174d88c257 ("net: Add Transparent Ethernet Bridging GRO support.")
 Fixes: 66e5133f19e9 ("vlan: Add GRO support for non hardware accelerated vlan")
 Signed-off-by: Sabrina Dubroca <sd@queasysnail.net>
 Reviewed-by: Jiri Benc <jbenc@redhat.com>
 Acked-by: Hannes Frederic Sowa <hannes@stressinduktion.org>
+Acked-by: Tom Herbert <tom@herbertland.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
 Acked-by: Michal Kubecek <mkubecek@suse.cz>
 
 openSUSE-42.1: omit geneve (driver introduced in v4.2-rc1) and vlan
-(GRO support added in v4.2-rc1) part.
+(GRO support added in v4.2-rc1) part. Use udp_gro_receive() part from
+the original (embargoed) version as we don't have a6024562ffd7 ("udp:
+Add GRO functions to UDP socket") but add the (unused) helper anyway
+for compatibility with mainline code.
+
 ---
  drivers/net/vxlan.c       |  2 +-
- include/linux/netdevice.h | 24 +++++++++++++++++++++++-
+ include/linux/netdevice.h | 39 ++++++++++++++++++++++++++++++++++++++-
  net/core/dev.c            |  1 +
  net/ethernet/eth.c        |  2 +-
  net/ipv4/af_inet.c        |  2 +-
@@ -33,7 +48,7 @@ openSUSE-42.1: omit geneve (driver introduced in v4.2-rc1) and vlan
  net/ipv4/gre_offload.c    |  2 +-
  net/ipv4/udp_offload.c    | 10 ++++++++--
  net/ipv6/ip6_offload.c    |  2 +-
- 9 files changed, 39 insertions(+), 10 deletions(-)
+ 9 files changed, 54 insertions(+), 10 deletions(-)
 
 diff --git a/drivers/net/vxlan.c b/drivers/net/vxlan.c
 index 68199d282137..f4e0ad4e7ecd 100644
@@ -49,22 +64,22 @@ index 68199d282137..f4e0ad4e7ecd 100644
  
  out:
 diff --git a/include/linux/netdevice.h b/include/linux/netdevice.h
-index 765795dfd9ad..86592339089a 100644
+index 937e4e36d972..c4d522511d92 100644
 --- a/include/linux/netdevice.h
 +++ b/include/linux/netdevice.h
-@@ -1963,7 +1963,10 @@ struct napi_gro_cb {
- 	/* Used in foo-over-udp, set in udp[46]_gro_receive */
- 	u8	is_ipv6:1;
+@@ -1966,7 +1966,10 @@ struct napi_gro_cb {
+ 	/* Used in GRE, set in fou/gue_gro_receive */
+ 	u8	is_fou:1;
  
--	/* 7 bit hole */
+-	/* 6 bit hole */
 +	/* Number of gro_receive callbacks this packet already went through */
 +	u8 recursion_counter:4;
 +
-+	/* 3 bit hole */
++	/* 2 bit hole */
  
  	/* used to support CHECKSUM_COMPLETE for tunneling protocols */
  	__wsum	csum;
-@@ -1974,6 +1977,25 @@ struct napi_gro_cb {
+@@ -1977,6 +1980,40 @@ struct napi_gro_cb {
  
  #define NAPI_GRO_CB(skb) ((struct napi_gro_cb *)(skb)->cb)
  
@@ -79,7 +94,7 @@ index 765795dfd9ad..86592339089a 100644
 +						struct sk_buff **head,
 +						struct sk_buff *skb)
 +{
-+	if (gro_recursion_inc_test(skb)) {
++	if (unlikely(gro_recursion_inc_test(skb))) {
 +		NAPI_GRO_CB(skb)->flush |= 1;
 +		return NULL;
 +	}
@@ -87,11 +102,26 @@ index 765795dfd9ad..86592339089a 100644
 +	return cb(head, skb);
 +}
 +
++typedef struct sk_buff **(*gro_receive_sk_t)(struct sock *, struct sk_buff **,
++					     struct sk_buff *);
++static inline struct sk_buff **call_gro_receive_sk(gro_receive_sk_t cb,
++						   struct sock *sk,
++						   struct sk_buff **head,
++						   struct sk_buff *skb)
++{
++	if (unlikely(gro_recursion_inc_test(skb))) {
++		NAPI_GRO_CB(skb)->flush |= 1;
++		return NULL;
++	}
++
++	return cb(sk, head, skb);
++}
++
  struct packet_type {
  	__be16			type;	/* This is really htons(ether_type). */
  	struct net_device	*dev;	/* NULL is wildcarded here	     */
 diff --git a/net/core/dev.c b/net/core/dev.c
-index 5bb216c1e1dc..0cfe15c4f9b9 100644
+index 7980c134ede9..68a0ce402e9d 100644
 --- a/net/core/dev.c
 +++ b/net/core/dev.c
 @@ -4060,6 +4060,7 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff
@@ -99,9 +129,9 @@ index 5bb216c1e1dc..0cfe15c4f9b9 100644
  		NAPI_GRO_CB(skb)->free = 0;
  		NAPI_GRO_CB(skb)->encap_mark = 0;
 +		NAPI_GRO_CB(skb)->recursion_counter = 0;
+ 		NAPI_GRO_CB(skb)->is_fou = 0;
  		NAPI_GRO_CB(skb)->gro_remcsum_start = 0;
  
- 		/* Setup for GRO checksum validation */
 diff --git a/net/ethernet/eth.c b/net/ethernet/eth.c
 index f3bad41d725f..76f8389eacd2 100644
 --- a/net/ethernet/eth.c
@@ -129,10 +159,10 @@ index 24360596c21b..74274404ae47 100644
  out_unlock:
  	rcu_read_unlock();
 diff --git a/net/ipv4/fou.c b/net/ipv4/fou.c
-index 5ef391507993..a488f225781e 100644
+index 798adc5bae8d..34408469684c 100644
 --- a/net/ipv4/fou.c
 +++ b/net/ipv4/fou.c
-@@ -188,7 +188,7 @@ static struct sk_buff **fou_gro_receive(struct sk_buff **head,
+@@ -208,7 +208,7 @@ static struct sk_buff **fou_gro_receive(struct sk_buff **head,
  	if (!ops || !ops->callbacks.gro_receive)
  		goto out_unlock;
  
@@ -141,7 +171,7 @@ index 5ef391507993..a488f225781e 100644
  
  out_unlock:
  	rcu_read_unlock();
-@@ -353,7 +353,7 @@ static struct sk_buff **gue_gro_receive(struct sk_buff **head,
+@@ -384,7 +384,7 @@ static struct sk_buff **gue_gro_receive(struct sk_buff **head,
  	if (WARN_ON(!ops || !ops->callbacks.gro_receive))
  		goto out_unlock;
  
@@ -151,10 +181,10 @@ index 5ef391507993..a488f225781e 100644
  
  out_unlock:
 diff --git a/net/ipv4/gre_offload.c b/net/ipv4/gre_offload.c
-index 738f4c6b424a..aa606faeb139 100644
+index edb2e5bf59ea..b483bbc7968c 100644
 --- a/net/ipv4/gre_offload.c
 +++ b/net/ipv4/gre_offload.c
-@@ -217,7 +217,7 @@ static struct sk_buff **gre_gro_receive(struct sk_buff **head,
+@@ -225,7 +225,7 @@ static struct sk_buff **gre_gro_receive(struct sk_buff **head,
  	/* Adjusted NAPI_GRO_CB(skb)->csum after skb_gro_pull()*/
  	skb_gro_postpull_rcsum(skb, greh, grehlen);
  
@@ -164,7 +194,7 @@ index 738f4c6b424a..aa606faeb139 100644
  
  out_unlock:
 diff --git a/net/ipv4/udp_offload.c b/net/ipv4/udp_offload.c
-index 0e36e56dfd22..d49b61945ea2 100644
+index 0e36e56dfd22..8120590c69b2 100644
 --- a/net/ipv4/udp_offload.c
 +++ b/net/ipv4/udp_offload.c
 @@ -339,8 +339,14 @@ unflush:
@@ -174,7 +204,7 @@ index 0e36e56dfd22..d49b61945ea2 100644
 -	pp = uo_priv->offload->callbacks.gro_receive(head, skb,
 -						     uo_priv->offload);
 +
-+	if (gro_recursion_inc_test(skb)) {
++	if (unlikely(gro_recursion_inc_test(skb))) {
 +		flush = 1;
 +		pp = NULL;
 +	} else {
@@ -198,5 +228,5 @@ index 08b62047c67f..db0b8428d248 100644
  out_unlock:
  	rcu_read_unlock();
 -- 
-2.10.0
+2.10.1
 
