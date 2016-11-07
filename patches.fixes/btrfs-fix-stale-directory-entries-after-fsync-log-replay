@@ -1,7 +1,8 @@
 From: Filipe Manana <fdmanana@suse.com>
 Date: Wed, 22 Jul 2015 04:54:54 +0100
 Subject: Btrfs: fix stale directory entries after fsync log replay
-Patch-mainline: Submitted, http://www.spinics.net/lists/linux-btrfs/msg45480.html
+Patch-mainline: v4.3-rc1
+Git-commit: bb53eda9029fd52b466fa501ba4aa58e94789b18
 References: bsc#942925
 
 We have another case where after an fsync log replay we get an inode with
