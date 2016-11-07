@@ -1,7 +1,8 @@
 From: Filipe Manana <fdmanana@suse.com>
 Date: Fri, 24 Jul 2015 06:30:42 +0100
 Subject: Btrfs: fix stale dir entries after unlink, inode eviction and fsync
-Patch-mainline: Submitted, http://www.spinics.net/lists/linux-btrfs/msg45634.html
+Patch-mainline: v4.3-rc1
+Git-commit: bde6c242027b0f1d697d5333950b3a05761d40e4
 References: bsc#942925
 
 If we remove a hard link from an inode, the inode gets evicted, then
