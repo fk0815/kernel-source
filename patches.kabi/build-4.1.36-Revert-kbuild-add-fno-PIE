@@ -1,0 +1,24 @@
+From: Takashi Iwai <tiwai@suse.de>
+Subject: [PATCH] Revert "kbuild: add -fno-PIE"
+Patch-mainline: Never, openSUSE-42.1 only
+References: stable-4.1.36
+
+This breaks kABI on openSUSE-42.1 branch.
+
+Signed-off-by: Takashi Iwai <tiwai@suse.de>
+
+---
+ Makefile |    2 --
+ 1 file changed, 2 deletions(-)
+
+--- a/Makefile
++++ b/Makefile
+@@ -631,8 +631,6 @@ all: vmlinux
+ include arch/$(SRCARCH)/Makefile
+ 
+ KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
+-KBUILD_CFLAGS	+= $(call cc-option,-fno-PIE)
+-KBUILD_AFLAGS	+= $(call cc-option,-fno-PIE)
+ 
+ ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+ KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
